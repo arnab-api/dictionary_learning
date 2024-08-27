@@ -11,6 +11,7 @@ import wandb
 import json
 # from .evaluation import evaluate
 
+
 def log_stats(
     trainers,
     step: int,
@@ -59,6 +60,10 @@ def log_stats(
             for name, value in trainer_log.items():
                 log[f"{trainer_name}/{name}"] = value
 
+            print(
+                f"Step {step} {trainer_name} L0: {l0:.2f} frac_var: {frac_variance_explained:.2f}"
+            )
+
             # TODO get this to work
             # metrics = evaluate(
             #     trainer.ae,
@@ -71,31 +76,32 @@ def log_stats(
     if use_wandb:
         wandb.log(log, step=step)
 
+
 def trainSAE(
-        data, 
-        trainer_configs = [
-            {
-                'trainer' : StandardTrainer,
-                'dict_class' : AutoEncoder,
-                'activation_dim' : 512,
-                'dict_size' : 64*512,
-                'lr' : 1e-3,
-                'l1_penalty' : 1e-1,
-                'warmup_steps' : 1000,
-                'resample_steps' : None,
-                'seed' : None,
-                'wandb_name' : 'StandardTrainer',
-            }
-        ],
-        use_wandb = False,
-        wandb_entity = "",
-        wandb_project = "",
-        steps=None,
-        save_steps=None,
-        save_dir=None, # use {run} to refer to wandb run
-        log_steps=None,
-        activations_split_by_head=False, # set to true if data is shape [batch, pos, num_head, head_dim/resid_dim]
-        transcoder=False,
+    data,
+    trainer_configs=[
+        {
+            "trainer": StandardTrainer,
+            "dict_class": AutoEncoder,
+            "activation_dim": 512,
+            "dict_size": 64 * 512,
+            "lr": 1e-3,
+            "l1_penalty": 1e-1,
+            "warmup_steps": 1000,
+            "resample_steps": None,
+            "seed": None,
+            "wandb_name": "StandardTrainer",
+        }
+    ],
+    use_wandb=False,
+    wandb_entity="",
+    wandb_project="",
+    steps=None,
+    save_steps=None,
+    save_dir=None,  # use {run} to refer to wandb run
+    log_steps=None,
+    activations_split_by_head=False,  # set to true if data is shape [batch, pos, num_head, head_dim/resid_dim]
+    transcoder=False,
 ):
     """
     Train SAEs using the given trainers
@@ -103,21 +109,19 @@ def trainSAE(
 
     trainers = []
     for config in trainer_configs:
-        trainer = config['trainer']
-        del config['trainer']
-        trainers.append(
-            trainer(
-                **config
-            )
-        )
-
+        trainer = config["trainer"]
+        del config["trainer"]
+        trainers.append(trainer(**config))
 
     if log_steps is not None:
         if use_wandb:
             wandb.init(
                 entity=wandb_entity,
                 project=wandb_project,
-                config={f'{trainer.config["wandb_name"]}-{i}' : trainer.config for i, trainer in enumerate(trainers)}
+                config={
+                    f'{trainer.config["wandb_name"]}-{i}': trainer.config
+                    for i, trainer in enumerate(trainers)
+                },
             )
             # process save_dir in light of run name
             if save_dir is not None:
@@ -129,15 +133,16 @@ def trainSAE(
         for trainer, dir in zip(trainers, save_dirs):
             os.makedirs(dir, exist_ok=True)
             # save config
-            config = {'trainer' : trainer.config}
+            config = {"trainer": trainer.config}
             try:
-                config['buffer'] = data.config
-            except: pass
-            with open(os.path.join(dir, "config.json"), 'w') as f:
+                config["buffer"] = data.config
+            except:
+                pass
+            with open(os.path.join(dir, "config.json"), "w") as f:
                 json.dump(config, f, indent=4)
     else:
         save_dirs = [None for _ in trainer_configs]
-    
+
     for step, act in enumerate(tqdm(data, total=steps)):
         if steps is not None and step >= steps:
             break
@@ -145,22 +150,21 @@ def trainSAE(
         # logging
         if log_steps is not None and step % log_steps == 0:
             log_stats(trainers, step, act, use_wandb, activations_split_by_head, transcoder)
-            
+
         # saving
-        if save_steps is not None and step % save_steps == 0:
+        if save_steps is not None and step in save_steps:
             for dir, trainer in zip(save_dirs, trainers):
                 if dir is not None:
                     if not os.path.exists(os.path.join(dir, "checkpoints")):
                         os.mkdir(os.path.join(dir, "checkpoints"))
                     t.save(
-                        trainer.ae.state_dict(), 
-                        os.path.join(dir, "checkpoints", f"ae_{step}.pt")
-                        )
-                    
+                        trainer.ae.state_dict(), os.path.join(dir, "checkpoints", f"ae_{step}.pt")
+                    )
+
         # training
         for trainer in trainers:
             trainer.update(step, act)
-    
+
     # save final SAEs
     for save_dir, trainer in zip(save_dirs, trainers):
         if save_dir is not None:
