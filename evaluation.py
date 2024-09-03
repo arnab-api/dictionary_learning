@@ -68,6 +68,7 @@ def loss_recovered(
 
     # pull this out so dictionary can be written without FakeTensor (top_k needs this)
     x_hat = dictionary(x.view(-1, x.shape[-1])).view(x.shape).to(model.dtype)
+    x_hat[:, 0, :] = x[:, 0, :]  # mask off the BOS token (gemma-scope needs this)
 
     # intervene with `x_hat`
     with model.trace(text, **tracer_args, invoker_args=invoker_args):
