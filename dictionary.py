@@ -235,6 +235,7 @@ class JumpReluAutoEncoder(Dictionary, nn.Module):
     def encode(self, x, output_pre_jump=False):
         if self.apply_b_dec_to_input:
             x = x - self.b_dec
+        x = x.to(dtype=self.W_enc.dtype)
         pre_jump = x @ self.W_enc + self.b_enc
 
         f = nn.ReLU()(pre_jump * (pre_jump > self.threshold))
