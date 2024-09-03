@@ -5,7 +5,7 @@ Utilities for evaluating dictionaries on a model and dataset.
 import torch as t
 from collections import defaultdict
 
-from .buffer import ActivationBuffer, NNsightActivationBuffer
+from .buffer import ActivationBuffer, EvaluationActivationBuffer, NNsightActivationBuffer
 from nnsight import LanguageModel
 from .config import DEBUG
 
@@ -220,7 +220,9 @@ def evaluate(
             out["l2_ratio"] += l2_ratio.item()
             out["relative_reconstruction_bias"] += relative_reconstruction_bias.item()
 
-            if not isinstance(activations, (ActivationBuffer, NNsightActivationBuffer)):
+            if not isinstance(
+                activations, (ActivationBuffer, EvaluationActivationBuffer, NNsightActivationBuffer)
+            ):
                 continue
 
             # compute loss recovered
