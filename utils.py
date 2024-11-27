@@ -1,7 +1,9 @@
-from datasets import load_dataset
-import zstandard as zstd
 import io
 import json
+
+import zstandard as zstd
+from datasets import load_dataset
+
 
 def hf_dataset_to_generator(dataset_name, split='train', streaming=True):
     dataset = load_dataset(dataset_name, split=split, streaming=streaming)

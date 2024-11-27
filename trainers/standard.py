@@ -1,11 +1,14 @@
 """
 Implements the standard SAE training scheme.
 """
+from collections import namedtuple
+
 import torch as t
-from ..trainers.trainer import SAETrainer
+
 from ..config import DEBUG
 from ..dictionary import AutoEncoder
-from collections import namedtuple
+from ..trainers.trainer import SAETrainer
+
 
 class ConstrainedAdam(t.optim.Adam):
     """

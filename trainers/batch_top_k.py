@@ -1,7 +1,8 @@
+from collections import namedtuple
+
+import einops
 import torch as t
 import torch.nn as nn
-import einops
-from collections import namedtuple
 
 from ..config import DEBUG
 from ..dictionary import Dictionary

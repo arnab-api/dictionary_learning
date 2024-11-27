@@ -1,6 +1,6 @@
-from .standard import StandardTrainer
+from .batch_top_k import BatchTopKSAE, TrainerBatchTopK
+from .gated_anneal import GatedAnnealTrainer
 from .gdm import GatedSAETrainer
 from .p_anneal import PAnnealTrainer
-from .gated_anneal import GatedAnnealTrainer
+from .standard import StandardTrainer
 from .top_k import TrainerTopK
-from .batch_top_k import TrainerBatchTopK, BatchTopKSAE

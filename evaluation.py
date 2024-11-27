@@ -2,11 +2,13 @@
 Utilities for evaluating dictionaries on a model and dataset.
 """
 
-import torch as t
 from collections import defaultdict
 
-from .buffer import ActivationBuffer, EvaluationActivationBuffer, NNsightActivationBuffer
+import torch as t
 from nnsight import LanguageModel
+
+from .buffer import (ActivationBuffer, EvaluationActivationBuffer,
+                     NNsightActivationBuffer)
 from .config import DEBUG
 
 

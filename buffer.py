@@ -1,6 +1,7 @@
+import gc
+
 import torch as t
 from nnsight import LanguageModel
-import gc
 from tqdm import tqdm
 
 from .config import DEBUG
@@ -40,7 +41,9 @@ class ActivationBuffer:
                 else:
                     d_submodule = submodule.out_features
             except:
-                raise ValueError("d_submodule cannot be inferred and must be specified directly")
+                raise ValueError(
+                    "d_submodule cannot be inferred and must be specified directly"
+                )
         self.activations = t.empty(0, d_submodule, device=device)
         self.read = t.zeros(0).bool()
 
@@ -70,7 +73,9 @@ class ActivationBuffer:
 
             # return a batch
             unreads = (~self.read).nonzero().squeeze()
-            idxs = unreads[t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]]
+            idxs = unreads[
+                t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]
+            ]
             self.read[idxs] = True
             return self.activations[idxs]
 
@@ -91,7 +96,11 @@ class ActivationBuffer:
         """
         texts = self.text_batch(batch_size=batch_size)
         return self.model.tokenizer(
-            texts, return_tensors="pt", max_length=self.ctx_len, padding=True, truncation=True
+            texts,
+            return_tensors="pt",
+            max_length=self.ctx_len,
+            padding=True,
+            truncation=True,
         )
 
     def refresh(self):
@@ -100,7 +109,9 @@ class ActivationBuffer:
         self.activations = self.activations[~self.read]
 
         current_idx = len(self.activations)
-        new_activations = t.empty(self.activation_buffer_size, self.d_submodule, device=self.device)
+        new_activations = t.empty(
+            self.activation_buffer_size, self.d_submodule, device=self.device
+        )
 
         new_activations[: len(self.activations)] = self.activations
         self.activations = new_activations
@@ -131,8 +142,8 @@ class ActivationBuffer:
             assert remaining_space > 0
             hidden_states = hidden_states[:remaining_space]
 
-            self.activations[current_idx : current_idx + len(hidden_states)] = hidden_states.to(
-                self.device
+            self.activations[current_idx : current_idx + len(hidden_states)] = (
+                hidden_states.to(self.device)
             )
             current_idx += len(hidden_states)
 
@@ -190,7 +201,9 @@ class EvaluationActivationBuffer:
                 else:
                     d_submodule = submodule.out_features
             except:
-                raise ValueError("d_submodule cannot be inferred and must be specified directly")
+                raise ValueError(
+                    "d_submodule cannot be inferred and must be specified directly"
+                )
         self.activations = t.empty(0, d_submodule, device=device)
         self.read = t.zeros(0).bool()
 
@@ -220,7 +233,9 @@ class EvaluationActivationBuffer:
 
             # return a batch
             unreads = (~self.read).nonzero().squeeze()
-            idxs = unreads[t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]]
+            idxs = unreads[
+                t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]
+            ]
             self.read[idxs] = True
             return self.activations[idxs]
 
@@ -241,7 +256,11 @@ class EvaluationActivationBuffer:
         """
         texts = self.text_batch(batch_size=batch_size)
         return self.model.tokenizer(
-            texts, return_tensors="pt", max_length=self.ctx_len, padding=True, truncation=True
+            texts,
+            return_tensors="pt",
+            max_length=self.ctx_len,
+            padding=True,
+            truncation=True,
         )
 
     def refresh(self):
@@ -250,7 +269,9 @@ class EvaluationActivationBuffer:
         self.activations = self.activations[~self.read]
 
         current_idx = len(self.activations)
-        new_activations = t.empty(self.activation_buffer_size, self.d_submodule, device=self.device)
+        new_activations = t.empty(
+            self.activation_buffer_size, self.d_submodule, device=self.device
+        )
 
         new_activations[: len(self.activations)] = self.activations
         self.activations = new_activations
@@ -285,8 +306,8 @@ class EvaluationActivationBuffer:
             assert remaining_space > 0
             hidden_states = hidden_states[:remaining_space]
 
-            self.activations[current_idx : current_idx + len(hidden_states)] = hidden_states.to(
-                self.device
+            self.activations[current_idx : current_idx + len(hidden_states)] = (
+                hidden_states.to(self.device)
             )
             current_idx += len(hidden_states)
 
@@ -368,7 +389,9 @@ class HeadActivationBuffer:
 
             # return a batch
             unreads = (~self.read).nonzero().squeeze()
-            idxs = unreads[t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]]
+            idxs = unreads[
+                t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]
+            ]
             self.read[idxs] = True
             return self.activations[idxs]
 
@@ -389,7 +412,11 @@ class HeadActivationBuffer:
         """
         texts = self.text_batch(batch_size=batch_size)
         return self.model.tokenizer(
-            texts, return_tensors="pt", max_length=self.ctx_len, padding=True, truncation=True
+            texts,
+            return_tensors="pt",
+            max_length=self.ctx_len,
+            padding=True,
+            truncation=True,
         )
 
     def refresh(self):
@@ -404,7 +431,9 @@ class HeadActivationBuffer:
                     remote=self.remote,
                 ):
                     input = self.model.input.save()
-                    hidden_states = self.model.model.layers[self.layer].self_attn.o_proj.input[0][
+                    hidden_states = self.model.model.layers[
+                        self.layer
+                    ].self_attn.o_proj.input[0][
                         0
                     ]  # .save()
                     if isinstance(hidden_states, tuple):
@@ -428,7 +457,9 @@ class HeadActivationBuffer:
                         for h in range(self.n_heads):
                             start = h * self.head_dim
                             end = (h + 1) * self.head_dim
-                            hidden_states_W_O[..., h, start:end] = hidden_states[..., h, :]
+                            hidden_states_W_O[..., h, start:end] = hidden_states[
+                                ..., h, :
+                            ]
                         hidden_states = (
                             self.model.model.layers[self.layer]
                             .self_attn.o_proj(hidden_states_W_O)
@@ -440,7 +471,9 @@ class HeadActivationBuffer:
             hidden_states = hidden_states[attn_mask != 0]
 
             # Save results
-            self.activations = t.cat([self.activations, hidden_states.to(self.device)], dim=0)
+            self.activations = t.cat(
+                [self.activations, hidden_states.to(self.device)], dim=0
+            )
             self.read = t.zeros(len(self.activations), dtype=t.bool, device=self.device)
 
     @property
@@ -490,7 +523,9 @@ class NNsightActivationBuffer:
                 else:
                     d_submodule = submodule.out_features
             except:
-                raise ValueError("d_submodule cannot be inferred and must be specified directly")
+                raise ValueError(
+                    "d_submodule cannot be inferred and must be specified directly"
+                )
 
         if io in ["in", "out"]:
             self.activations = t.empty(0, d_submodule, device=device)
@@ -524,7 +559,9 @@ class NNsightActivationBuffer:
 
             # return a batch
             unreads = (~self.read).nonzero().squeeze()
-            idxs = unreads[t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]]
+            idxs = unreads[
+                t.randperm(len(unreads), device=unreads.device)[: self.out_batch_size]
+            ]
             self.read[idxs] = True
             return self.activations[idxs]
 
@@ -534,7 +571,11 @@ class NNsightActivationBuffer:
         """
         texts = self.text_batch(batch_size=batch_size)
         return self.model.tokenizer(
-            texts, return_tensors="pt", max_length=self.ctx_len, padding=True, truncation=True
+            texts,
+            return_tensors="pt",
+            max_length=self.ctx_len,
+            padding=True,
+            truncation=True,
         )
 
     def token_batch(self, batch_size=None):
@@ -544,7 +585,9 @@ class NNsightActivationBuffer:
         if batch_size is None:
             batch_size = self.refresh_batch_size
         try:
-            return t.tensor([next(self.data) for _ in range(batch_size)], device=self.device)
+            return t.tensor(
+                [next(self.data) for _ in range(batch_size)], device=self.device
+            )
         except StopIteration:
             raise StopIteration("End of data stream reached")
 
@@ -587,10 +630,16 @@ class NNsightActivationBuffer:
             elif self.io == "out":
                 hidden_states = self._reshaped_activations(hidden_states_out)
             elif self.io == "in_and_out":
-                hidden_states_in = self._reshaped_activations(hidden_states_in).unsqueeze(1)
-                hidden_states_out = self._reshaped_activations(hidden_states_out).unsqueeze(1)
+                hidden_states_in = self._reshaped_activations(
+                    hidden_states_in
+                ).unsqueeze(1)
+                hidden_states_out = self._reshaped_activations(
+                    hidden_states_out
+                ).unsqueeze(1)
                 hidden_states = t.cat([hidden_states_in, hidden_states_out], dim=1)
-            self.activations = t.cat([self.activations, hidden_states.to(self.device)], dim=0)
+            self.activations = t.cat(
+                [self.activations, hidden_states.to(self.device)], dim=0
+            )
             self.read = t.zeros(len(self.activations), dtype=t.bool, device=self.device)
 
     @property

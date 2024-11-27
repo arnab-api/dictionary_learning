@@ -3,10 +3,11 @@ Implements the SAE training scheme from https://arxiv.org/abs/2406.04093.
 Significant portions of this code have been copied from https://github.com/EleutherAI/sae/blob/main/sae
 """
 
+from collections import namedtuple
+
 import einops
 import torch as t
 import torch.nn as nn
-from collections import namedtuple
 
 from ..config import DEBUG
 from ..dictionary import Dictionary

@@ -2,13 +2,16 @@
 Training dictionaries
 """
 
-import torch as t
-from .dictionary import AutoEncoder
-import os
-from tqdm import tqdm
-from .trainers.standard import StandardTrainer
-import wandb
 import json
+import os
+
+import torch as t
+import wandb
+from tqdm import tqdm
+
+from .dictionary import AutoEncoder
+from .trainers.standard import StandardTrainer
+
 # from .evaluation import evaluate
 
 
