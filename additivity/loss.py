@@ -1,9 +1,9 @@
 import torch as t
 
 
-def disentanglement_loss(ae, x, logging=False):
+def disentanglement_loss(ae, x):
     half_batch_dim = x.shape[0] // 2
-    x = x[: half_batch_dim * 2].to(ae.device)
+    x = x[: half_batch_dim * 2].to(ae.decoder.weight.device)
     random_indices = t.randperm(half_batch_dim * 2)
     x1 = x[random_indices[:half_batch_dim]]
     x2 = x[random_indices[half_batch_dim:]]

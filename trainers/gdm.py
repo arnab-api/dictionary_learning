@@ -6,10 +6,10 @@ from collections import namedtuple
 
 import torch as t
 
+from ..additivity.loss import disentanglement_loss
 from ..config import DEBUG
 from ..dictionary import GatedAutoEncoder
 from ..trainers.trainer import SAETrainer
-from ..additivity.loss import disentanglement_loss
 
 
 class ConstrainedAdam(t.optim.Adam):
@@ -46,7 +46,7 @@ class GatedSAETrainer(SAETrainer):
         dict_size=64 * 512,
         lr=5e-5,
         l1_penalty=1e-1,
-        additivity_penalty=0,
+        additivity_penalty=1e-1,
         warmup_steps=1000,  # lr warmup period at start of training and after each resample
         resample_steps=None,  # how often to resample neurons
         seed=None,
@@ -72,6 +72,7 @@ class GatedSAETrainer(SAETrainer):
 
         self.lr = lr
         self.l1_penalty = l1_penalty
+        self.additivity_penalty = additivity_penalty
         self.warmup_steps = warmup_steps
         self.wandb_name = wandb_name
 
@@ -101,14 +102,11 @@ class GatedSAETrainer(SAETrainer):
         L_sparse = t.linalg.norm(f_gate, ord=1, dim=-1).mean()
         L_aux = (x - x_hat_gate).pow(2).sum(dim=-1).mean()
 
-        loss_log = (
-            {
-                "mse_loss": L_recon.item(),
-                "sparsity_loss": L_sparse.item(),
-                "aux_loss": L_aux.item(),
-                "loss": loss.item(),
-            },
-        )
+        loss_log = {
+            "mse_loss": L_recon.item(),
+            "sparsity_loss": L_sparse.item(),
+            "aux_loss": L_aux.item(),
+        }
 
         if self.additivity_penalty > 0:
             L_disentanglement = disentanglement_loss(self.ae, x)
@@ -116,6 +114,9 @@ class GatedSAETrainer(SAETrainer):
             loss_log["disentanglement_loss"] = L_disentanglement.item()
 
         loss = L_recon + self.l1_penalty * L_sparse + L_aux
+        loss_log["loss"] = loss.item()
+
+        # print(loss_log)
 
         if not logging:
             return loss
@@ -146,7 +147,7 @@ class GatedSAETrainer(SAETrainer):
             "l1_penalty": self.l1_penalty,
             "warmup_steps": self.warmup_steps,
             "device": self.device,
-            "layer": self.layer,
+            # "layer": self.layer,
             "lm_name": self.lm_name,
             "wandb_name": self.wandb_name,
             "submodule_name": self.submodule_name,
