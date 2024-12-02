@@ -30,3 +30,19 @@ def disentanglement_loss(ae, x):
     #     print(f"{composition_loss.item()=} | {disentanglement_loss.item()=}")
 
     return composition_loss + disentanglement_loss
+
+def additivity_loss(ae, x):
+    half_batch_dim = x.shape[0] // 2
+    x = x[: half_batch_dim * 2].to(ae.decoder.weight.device)
+    random_indices = t.randperm(half_batch_dim * 2)
+    x1 = x[random_indices[:half_batch_dim]]
+    x2 = x[random_indices[half_batch_dim:]]
+    x_composed = x1 + x2  # ! should I devide by 2?
+    x_composed.requires_grad = True
+    f1 = ae.encode(x1)
+    f2 = ae.encode(x2)
+    f_composed = ae.encode(x_composed)
+
+    # Reduce additivity error: f(h1) + f(h2) == f(h1 + h2)
+    additivity_loss = (f1 + f2 - f_composed).pow(2).mean(dim=-1).sum()
+    return additivity_loss
