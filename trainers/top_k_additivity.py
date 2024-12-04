@@ -12,7 +12,7 @@ import torch.nn as nn
 from ..config import DEBUG
 from ..dictionary import Dictionary
 from ..trainers.trainer import SAETrainer
-from ..additivity.loss import disentanglement_loss, additivity_loss
+from ..additivity.loss import intersection_loss, additivity_loss
 
 
 @t.no_grad()
@@ -144,7 +144,8 @@ class TrainerTopKAdditivity(SAETrainer):
         dict_size=64 * 512,
         k=100,
         auxk_alpha=1 / 32,  # see Appendix A.2
-        additivity_coefficient=1.0,
+        additivity_coeff=1.0,
+        intersection_coeff=1.0,
         decay_start=24000,  # when does the lr decay start
         steps=30000,  # when when does training end
         seed=None,
@@ -181,7 +182,8 @@ class TrainerTopKAdditivity(SAETrainer):
         self.lr = 2e-4 / scale**0.5
         self.auxk_alpha = auxk_alpha
         self.dead_feature_threshold = 10_000_000
-        self.additivity_coefficient = additivity_coefficient
+        self.additivity_coeff = additivity_coeff
+        self.intersection_coeff = intersection_coeff
 
         # Optimizer and scheduler
         self.optimizer = t.optim.Adam(self.ae.parameters(), lr=self.lr, betas=(0.9, 0.999))
@@ -259,10 +261,12 @@ class TrainerTopKAdditivity(SAETrainer):
         l2_loss = e.pow(2).sum(dim=-1).mean()
         auxk_loss = auxk_loss.sum(dim=-1).mean()
         add_loss = additivity_loss(self.ae, x)
+        inters_loss = intersection_loss(self.ae, x)
         loss = (
             l2_loss
             + self.auxk_alpha * auxk_loss
-            + self.additivity_coefficient * add_loss
+            + self.additivity_coeff * add_loss
+            + self.intersection_coeff * inters_loss
         )
 
         if not logging:
@@ -275,8 +279,9 @@ class TrainerTopKAdditivity(SAETrainer):
                 {
                     "l2_loss": l2_loss.item(),
                     "auxk_loss": auxk_loss.item(),
-                    "loss": loss.item(),
+                    "total_loss": loss.item(),
                     "additivity_loss": add_loss.item(),
+                    "intersection_loss": inters_loss.item(),
                 },
             )
 
@@ -315,6 +320,9 @@ class TrainerTopKAdditivity(SAETrainer):
             "activation_dim": self.ae.activation_dim,
             "dict_size": self.ae.dict_size,
             "k": self.ae.k,
+            "auxk_alpha": self.auxk_alpha,
+            "additivity_coeff": self.additivity_coeff,
+            "intersection_coeff": self.intersection_coeff,
             "device": self.device,
             "layer": self.layer,
             "lm_name": self.lm_name,

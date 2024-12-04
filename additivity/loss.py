@@ -1,6 +1,5 @@
 import torch as t
 
-
 def disentanglement_loss(ae, x):
     half_batch_dim = x.shape[0] // 2
     x = x[: half_batch_dim * 2].to(ae.decoder.weight.device)
@@ -46,3 +45,16 @@ def additivity_loss(ae, x):
     # Reduce additivity error: f(h1) + f(h2) == f(h1 + h2)
     additivity_loss = (f1 + f2 - f_composed).pow(2).mean(dim=-1).sum()
     return additivity_loss
+
+def intersection_loss(ae, x):
+    half_batch_dim = x.shape[0] // 2
+    x = x[: half_batch_dim * 2].to(ae.decoder.weight.device)
+    random_indices = t.randperm(half_batch_dim * 2)
+    x1 = x[random_indices[:half_batch_dim]]
+    x2 = x[random_indices[half_batch_dim:]]
+    f1 = ae.encode(x1)
+    f2 = ae.encode(x2)
+
+    # Reduce intersection error: f(h1) intersect f(h2) == {}
+    intersection_loss = (f1.bool() & f2.bool()).sum(dim=-1).mean()
+    return intersection_loss
